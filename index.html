@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Streaks">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Streaks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #111110;
+  --surface: #1a1918;
+  --surface-2: #222120;
+  --surface-3: #2c2a28;
+  --border: #363432;
+  --text: #e5e0da;
+  --text-dim: #9a948c;
+  --text-muted: #6b6560;
+  --accent: #c9a96e;
+  --accent-dim: #b0904f;
+  --accent-glow: rgba(201, 169, 110, 0.12);
+  --danger: #c07a6e;
+  --danger-glow: rgba(192, 122, 110, 0.12);
+  --gold: #c9a96e;
+  --silver: #9a948c;
+  --bronze: #a07850;
+  --radius: 14px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* ── Utility ── */
+.mono { font-family: 'DM Mono', monospace; }
+.hidden { display: none !important; }
+
+/* ── App Shell ── */
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 18px;
+  padding-bottom: calc(20px + var(--safe-bottom));
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+.header h1 span { color: var(--accent); }
+.add-btn {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.add-btn:active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  transform: scale(0.93);
+}
+
+/* ── Empty State ── */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 40px 20px;
+}
+.empty-state .icon { font-size: 48px; opacity: 0.6; }
+.empty-state p { color: var(--text-dim); font-size: 15px; line-height: 1.5; }
+
+/* ── Tracker Card (detail view) ── */
+.tracker-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Compact List Items (home view) ── */
+.tracker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  animation: slideUp 0.3s ease;
+}
+.tracker-row:active {
+  background: var(--surface-2);
+  transform: scale(0.985);
+}
+.tracker-row-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.tracker-row-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tracker-row-timer {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+.tracker-row-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.tracker-row-chevron {
+  color: var(--text-muted);
+  font-size: 18px;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+/* ── Back button ── */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 18px;
+  transition: opacity 0.15s;
+}
+.back-btn:active { opacity: 0.6; }
+.back-btn .arrow { font-size: 18px; }
+.tracker-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.tracker-card-header h2 {
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+}
+.tracker-menu-btn {
+  background: none; border: none; color: var(--text-dim);
+  font-size: 18px; cursor: pointer; padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+.tracker-menu-btn:active { background: var(--surface-2); }
+
+/* Live timer */
+.live-timer {
+  text-align: center;
+  padding: 22px 0 18px;
+}
+.live-timer .value {
+  font-family: 'DM Mono', monospace;
+  font-size: 44px;
+  font-weight: 400;
+  color: var(--accent);
+  letter-spacing: -1px;
+  line-height: 1;
+  text-shadow: 0 0 20px var(--accent-glow);
+}
+.live-timer .label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 8px;
+  letter-spacing: 0.5px;
+}
+
+/* Unit toggle */
+.unit-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 3px;
+  margin: 0 auto 20px;
+  width: fit-content;
+}
+.unit-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.unit-btn.active {
+  background: var(--surface-3);
+  color: var(--accent);
+}
+
+/* Log event button */
+.log-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--danger);
+  background: var(--danger-glow);
+  color: var(--danger);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 18px;
+}
+.log-btn:active {
+  transform: scale(0.97);
+  background: rgba(248, 113, 113, 0.25);
+}
+
+/* Top streaks */
+.streaks-section h3 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+}
+.streak-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.streak-row:last-child { border-bottom: none; }
+.streak-medal {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+}
+.medal-1 { background: rgba(251, 191, 36, 0.15); color: var(--gold); }
+.medal-2 { background: rgba(148, 163, 184, 0.15); color: var(--silver); }
+.medal-3 { background: rgba(217, 119, 6, 0.12); color: var(--bronze); }
+.streak-info { flex: 1; }
+.streak-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text);
+}
+.streak-dates {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.no-streaks {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+/* Recent history */
+.history-section { margin-top: 16px; }
+.history-section h3 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+}
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.history-header h3 { margin-bottom: 0; }
+.history-add-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.history-add-btn:active { background: var(--surface-2); }
+.history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  border-bottom: 1px solid rgba(54, 52, 50, 0.5);
+}
+.history-row:last-child { border-bottom: none; }
+.history-row-actions {
+  display: flex;
+  gap: 2px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.history-action-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 7px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.history-action-btn:active { background: var(--surface-2); }
+.history-action-btn.danger:active { color: var(--danger); }
+
+/* Average stat */
+.avg-stat {
+  text-align: center;
+  padding: 14px 0 6px;
+  margin-bottom: 12px;
+  border-top: 1px solid var(--border);
+}
+.avg-stat .avg-value {
+  font-family: 'DM Mono', monospace;
+  font-size: 20px;
+  color: var(--text);
+}
+.avg-stat .avg-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Datetime input in modals */
+.form-group input[type="datetime-local"] {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 11px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.form-group input[type="datetime-local"]:focus {
+  border-color: var(--accent);
+}
+/* Fix color-scheme for dark date picker on iOS/mobile */
+.form-group input[type="datetime-local"] { color-scheme: dark; }
+
+/* ── Modal / Overlay ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modal-sheet {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  padding: 28px 22px;
+  padding-bottom: calc(28px + var(--safe-bottom));
+  animation: slideSheet 0.3s ease;
+}
+@keyframes slideSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.modal-sheet h2 {
+  font-size: 19px;
+  font-weight: 600;
+  margin-bottom: 22px;
+}
+.form-group {
+  margin-bottom: 18px;
+}
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.form-group input[type="text"] {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 11px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input[type="text"]:focus {
+  border-color: var(--accent);
+}
+.form-group input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+.btn-secondary {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn-primary {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: var(--bg);
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary:active { opacity: 0.85; transform: scale(0.98); }
+.btn-secondary:active { background: var(--surface-3); }
+
+/* Confirm dialog */
+.confirm-body {
+  text-align: center;
+  padding: 10px 0 6px;
+}
+.confirm-body p {
+  color: var(--text-dim);
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+/* Context menu */
+.context-menu {
+  position: fixed;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  z-index: 200;
+  min-width: 160px;
+  animation: fadeIn 0.15s ease;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+.context-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 11px 14px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.context-menu button:active { background: var(--surface-3); }
+.context-menu button.danger { color: var(--danger); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>streak<span>.</span></h1>
+    <button class="add-btn" id="addBtn" aria-label="Add tracker">+</button>
+  </div>
+  <div id="trackerList"></div>
+  <div id="emptyState" class="empty-state">
+    <div class="icon">⏱</div>
+    <p>No trackers yet.<br>Tap + to start tracking your first streak.</p>
+  </div>
+</div>
+
+<!-- Modals rendered dynamically -->
+<div id="modalRoot"></div>
+
+<script>
+// ── Data Layer ──
+const STORAGE_KEY = 'streak_app_data';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : { trackers: [] };
+  } catch { return { trackers: [] }; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// ── Time Formatting ──
+function elapsed(ms, unit) {
+  const sec = ms / 1000;
+  if (unit === 'min') return (sec / 60).toFixed(1);
+  if (unit === 'hr') return (sec / 3600).toFixed(2);
+  if (unit === 'day') return (sec / 86400).toFixed(2);
+  return Math.floor(sec);
+}
+
+function elapsedLabel(unit) {
+  const labels = { min: 'minutes', hr: 'hours', day: 'days' };
+  return labels[unit] || unit;
+}
+
+function formatDate(ts) {
+  const d = new Date(ts);
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  const day = d.getDate();
+  const time = d.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${month} ${day}, ${time}`;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ── Streak Calculation ──
+function computeStreaks(events) {
+  if (events.length < 2) return [];
+  const sorted = [...events].sort((a, b) => a - b);
+  const gaps = [];
+  for (let i = 1; i < sorted.length; i++) {
+    gaps.push({
+      duration: sorted[i] - sorted[i - 1],
+      from: sorted[i - 1],
+      to: sorted[i]
+    });
+  }
+  gaps.sort((a, b) => b.duration - a.duration);
+  return gaps.slice(0, 3);
+}
+
+// ── App State ──
+let liveTimers = [];
+let currentView = 'list'; // 'list' or 'detail'
+let detailIdx = null;
+
+// ── Render: List View (Home) ──
+function renderList() {
+  currentView = 'list';
+  detailIdx = null;
+  const data = loadData();
+  const list = document.getElementById('trackerList');
+  const empty = document.getElementById('emptyState');
+  const header = document.querySelector('.header h1');
+  header.innerHTML = 'streak<span>.</span>';
+
+  // Show add button
+  document.getElementById('addBtn').classList.remove('hidden');
+
+  liveTimers.forEach(id => clearInterval(id));
+  liveTimers = [];
+
+  if (data.trackers.length === 0) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  list.innerHTML = data.trackers.map((t, idx) => {
+    const unit = t.unit || 'hr';
+    return `
+      <div class="tracker-row" onclick="openDetail(${idx})">
+        <div class="tracker-row-left">
+          <div class="tracker-row-name">${escapeHtml(t.name)}</div>
+          <div>
+            <span class="tracker-row-timer" id="timer-${idx}">—</span>
+            <span class="tracker-row-unit">${elapsedLabel(unit)}</span>
+          </div>
+        </div>
+        <div class="tracker-row-chevron">›</div>
+      </div>`;
+  }).join('');
+
+  // Start compact timers
+  data.trackers.forEach((t, idx) => {
+    const lastEvent = t.events.length > 0 ? Math.max(...t.events) : t.created;
+    const unit = t.unit || 'hr';
+    function tick() {
+      const el = document.getElementById(`timer-${idx}`);
+      if (el) el.textContent = elapsed(Date.now() - lastEvent, unit);
+    }
+    tick();
+    liveTimers.push(setInterval(tick, unit === 'min' ? 6000 : unit === 'day' ? 60000 : 1000));
+  });
+}
+
+// ── Render: Detail View ──
+function computeAverage(events) {
+  if (events.length < 2) return null;
+  const sorted = [...events].sort((a, b) => a - b);
+  const totalSpan = sorted[sorted.length - 1] - sorted[0];
+  return totalSpan / (sorted.length - 1);
+}
+
+function toLocalDatetime(ts) {
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function openDetail(idx) {
+  currentView = 'detail';
+  detailIdx = idx;
+  const data = loadData();
+  const t = data.trackers[idx];
+  if (!t) return renderList();
+
+  const list = document.getElementById('trackerList');
+  const empty = document.getElementById('emptyState');
+  empty.classList.add('hidden');
+
+  // Hide add button in detail view
+  document.getElementById('addBtn').classList.add('hidden');
+
+  liveTimers.forEach(id => clearInterval(id));
+  liveTimers = [];
+
+  const unit = t.unit || 'hr';
+  const streaks = computeStreaks(t.events);
+  const lastEvent = t.events.length > 0 ? Math.max(...t.events) : t.created;
+  const avg = computeAverage(t.events);
+
+  const streakRows = streaks.length > 0 ? streaks.map((s, i) => {
+    const medals = ['medal-1', 'medal-2', 'medal-3'];
+    return `
+      <div class="streak-row">
+        <div class="streak-medal ${medals[i]}">${i + 1}</div>
+        <div class="streak-info">
+          <div class="streak-value mono">${elapsed(s.duration, unit)} ${elapsedLabel(unit)}</div>
+          <div class="streak-dates">${formatDate(s.from)} → ${formatDate(s.to)}</div>
+        </div>
+      </div>`;
+  }).join('') : '<div class="no-streaks">Log at least 2 events to see streaks</div>';
+
+  const avgHtml = avg !== null ? `
+    <div class="avg-stat">
+      <div class="avg-value mono">${elapsed(avg, unit)} ${elapsedLabel(unit)}</div>
+      <div class="avg-label">average time between events</div>
+    </div>` : '';
+
+  // Build sorted index pairs: [{origIdx, ts}] sorted by ts desc
+  const indexedEvents = t.events.map((e, i) => ({ origIdx: i, ts: e }));
+  indexedEvents.sort((a, b) => b.ts - a.ts);
+  const historyRows = indexedEvents.map(({ origIdx, ts }) => {
+    return `
+      <div class="history-row">
+        <span class="mono">${formatDate(ts)}</span>
+        <div class="history-row-actions">
+          <button class="history-action-btn" onclick="editEvent(${idx}, ${origIdx})" title="Edit">✎</button>
+          <button class="history-action-btn danger" onclick="confirmDeleteEvent(${idx}, ${origIdx})" title="Delete">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  list.innerHTML = `
+    <button class="back-btn" onclick="renderList()">
+      <span class="arrow">‹</span> All trackers
+    </button>
+
+    <div class="tracker-card">
+      <div class="tracker-card-header">
+        <h2>${escapeHtml(t.name)}</h2>
+        <button class="tracker-menu-btn" onclick="showMenu(event, ${idx})">⋯</button>
+      </div>
+
+      <div class="live-timer">
+        <div class="value mono" id="timer-detail">—</div>
+        <div class="label">since last event</div>
+      </div>
+
+      <div class="unit-toggle">
+        ${['min', 'hr', 'day'].map(u => `
+          <button class="unit-btn ${unit === u ? 'active' : ''}" onclick="setUnit(${idx}, '${u}')">${u}</button>
+        `).join('')}
+      </div>
+
+      <button class="log-btn" onclick="confirmLog(${idx})">Log Event</button>
+
+      ${avgHtml}
+
+      <div class="streaks-section">
+        <h3>Top Streaks</h3>
+        ${streakRows}
+      </div>
+
+      <div class="history-section">
+        <div class="history-header">
+          <h3>Event Log</h3>
+          <button class="history-add-btn" onclick="addEventManual(${idx})">+ Add</button>
+        </div>
+        ${historyRows || '<div class="no-streaks">No events logged yet</div>'}
+      </div>
+    </div>`;
+
+  // Start detail timer
+  function tick() {
+    const el = document.getElementById('timer-detail');
+    if (el) el.textContent = elapsed(Date.now() - lastEvent, unit);
+  }
+  tick();
+  liveTimers.push(setInterval(tick, unit === 'min' ? 6000 : unit === 'day' ? 60000 : 1000));
+}
+
+// ── Actions ──
+function setUnit(idx, unit) {
+  const data = loadData();
+  data.trackers[idx].unit = unit;
+  saveData(data);
+  if (currentView === 'detail') openDetail(idx);
+  else renderList();
+}
+
+function confirmLog(idx) {
+  const data = loadData();
+  const t = data.trackers[idx];
+  showModal(`
+    <h2>Log Event</h2>
+    <div class="confirm-body">
+      <p>Reset the streak timer for<br><strong>${escapeHtml(t.name)}</strong>?</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="logEvent(${idx})">Confirm</button>
+    </div>
+  `);
+}
+
+function logEvent(idx) {
+  const data = loadData();
+  data.trackers[idx].events.push(Date.now());
+  saveData(data);
+  closeModal();
+  if (currentView === 'detail') openDetail(idx);
+  else renderList();
+}
+
+// ── Event Management ──
+function addEventManual(trackerIdx) {
+  const now = toLocalDatetime(Date.now());
+  showModal(`
+    <h2>Add Event</h2>
+    <div class="form-group">
+      <label>When did this event occur?</label>
+      <input type="datetime-local" id="eventDatetime" value="${now}">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveNewEvent(${trackerIdx})">Add</button>
+    </div>
+  `);
+}
+
+function saveNewEvent(trackerIdx) {
+  const input = document.getElementById('eventDatetime');
+  if (!input || !input.value) return;
+  const ts = new Date(input.value).getTime();
+  if (isNaN(ts)) return;
+  const data = loadData();
+  data.trackers[trackerIdx].events.push(ts);
+  saveData(data);
+  closeModal();
+  openDetail(trackerIdx);
+}
+
+function editEvent(trackerIdx, eventIdx) {
+  const data = loadData();
+  const ts = data.trackers[trackerIdx].events[eventIdx];
+  const val = toLocalDatetime(ts);
+  showModal(`
+    <h2>Edit Event</h2>
+    <div class="form-group">
+      <label>Adjust the date and time</label>
+      <input type="datetime-local" id="eventDatetime" value="${val}">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEditEvent(${trackerIdx}, ${eventIdx})">Save</button>
+    </div>
+  `);
+}
+
+function saveEditEvent(trackerIdx, eventIdx) {
+  const input = document.getElementById('eventDatetime');
+  if (!input || !input.value) return;
+  const ts = new Date(input.value).getTime();
+  if (isNaN(ts)) return;
+  const data = loadData();
+  data.trackers[trackerIdx].events[eventIdx] = ts;
+  saveData(data);
+  closeModal();
+  openDetail(trackerIdx);
+}
+
+function confirmDeleteEvent(trackerIdx, eventIdx) {
+  const data = loadData();
+  const ts = data.trackers[trackerIdx].events[eventIdx];
+  showModal(`
+    <h2>Delete Event</h2>
+    <div class="confirm-body">
+      <p>Remove the event from<br><strong>${formatDate(ts)}</strong>?</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" style="background:var(--danger);color:#fff" onclick="doDeleteEvent(${trackerIdx}, ${eventIdx})">Delete</button>
+    </div>
+  `);
+}
+
+function doDeleteEvent(trackerIdx, eventIdx) {
+  const data = loadData();
+  data.trackers[trackerIdx].events.splice(eventIdx, 1);
+  saveData(data);
+  closeModal();
+  openDetail(trackerIdx);
+}
+
+function showAddModal() {
+  showModal(`
+    <h2>New Tracker</h2>
+    <div class="form-group">
+      <label>What are you tracking?</label>
+      <input type="text" id="newTrackerName" placeholder="e.g., Discretionary spending" autofocus>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="addTracker()">Create</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('newTrackerName')?.focus(), 350);
+}
+
+function addTracker() {
+  const input = document.getElementById('newTrackerName');
+  const name = input?.value?.trim();
+  if (!name) return;
+  const data = loadData();
+  data.trackers.push({
+    name,
+    unit: 'hr',
+    events: [Date.now()],
+    created: Date.now()
+  });
+  saveData(data);
+  closeModal();
+  renderList();
+}
+
+function deleteTracker(idx) {
+  const data = loadData();
+  const t = data.trackers[idx];
+  closeContextMenu();
+  showModal(`
+    <h2>Delete Tracker</h2>
+    <div class="confirm-body">
+      <p>Permanently delete <strong>${escapeHtml(t.name)}</strong> and all its data?</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" style="background:var(--danger);color:#fff" onclick="doDelete(${idx})">Delete</button>
+    </div>
+  `);
+}
+
+function doDelete(idx) {
+  const data = loadData();
+  data.trackers.splice(idx, 1);
+  saveData(data);
+  closeModal();
+  renderList();
+}
+
+// ── Modal System ──
+function showModal(html) {
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal-sheet">${html}</div>
+    </div>`;
+}
+
+function closeModal() {
+  document.getElementById('modalRoot').innerHTML = '';
+}
+
+// ── Context Menu ──
+function showMenu(event, idx) {
+  event.stopPropagation();
+  closeContextMenu();
+  const btn = event.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.id = 'ctxMenu';
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  menu.innerHTML = `
+    <button onclick="deleteTracker(${idx});" class="danger">Delete tracker</button>
+  `;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeContextMenu, { once: true }), 10);
+}
+
+function closeContextMenu() {
+  const m = document.getElementById('ctxMenu');
+  if (m) m.remove();
+}
+
+// ── Init ──
+document.getElementById('addBtn').addEventListener('click', showAddModal);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && document.getElementById('newTrackerName')) {
+    addTracker();
+  }
+});
+
+renderList();
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
