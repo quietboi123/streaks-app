@@ -138,6 +138,8 @@ body {
   cursor: pointer;
   transition: all 0.15s;
   animation: slideUp 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 .tracker-row:active {
   background: var(--surface-2);
@@ -149,6 +151,7 @@ body {
   gap: 4px;
   min-width: 0;
   flex: 1;
+  z-index: 1;
 }
 .tracker-row-name {
   font-size: 15px;
@@ -157,6 +160,11 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.tracker-row-timers {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 .tracker-row-timer {
   font-family: 'DM Mono', monospace;
@@ -169,11 +177,50 @@ body {
   font-size: 12px;
   color: var(--text-muted);
 }
+.tracker-row-best {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.tracker-row-best .best-label {
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-muted);
+}
 .tracker-row-chevron {
   color: var(--text-muted);
   font-size: 18px;
   margin-left: 12px;
   flex-shrink: 0;
+  z-index: 1;
+}
+
+/* Progress bar background */
+.tracker-row-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 0 2px 2px 0;
+  transition: width 1s linear, background-color 0.5s ease;
+}
+
+/* New record badge */
+.tracker-row-record {
+  font-family: 'Outfit', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  margin-left: 8px;
+  flex-shrink: 0;
+  z-index: 1;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 /* ── Back button ── */
@@ -640,6 +687,24 @@ let currentView = 'list'; // 'list' or 'detail'
 let detailIdx = null;
 
 // ── Render: List View (Home) ──
+function getBestStreak(events) {
+  if (events.length < 2) return 0;
+  const sorted = [...events].sort((a, b) => a - b);
+  let best = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    best = Math.max(best, sorted[i] - sorted[i - 1]);
+  }
+  return best;
+}
+
+function getProgressColor(ratio) {
+  // 0 = dim muted, 0.5 = warm amber, 0.85+ = hot, 1.0+ = gold/record
+  if (ratio >= 1) return '#c9a96e';
+  if (ratio >= 0.85) return '#c9a96e';
+  if (ratio >= 0.5) return '#a07850';
+  return '#6b6560';
+}
+
 function renderList() {
   currentView = 'list';
   detailIdx = null;
@@ -664,26 +729,65 @@ function renderList() {
   empty.classList.add('hidden');
   list.innerHTML = data.trackers.map((t, idx) => {
     const unit = t.unit || 'hr';
+    const best = getBestStreak(t.events);
+    const bestDisplay = best > 0 ? `<span class="tracker-row-best"><span class="best-label">best </span>${elapsed(best, unit)}</span>` : '';
     return `
-      <div class="tracker-row" onclick="openDetail(${idx})">
+      <div class="tracker-row" onclick="openDetail(${idx})" id="row-${idx}">
         <div class="tracker-row-left">
           <div class="tracker-row-name">${escapeHtml(t.name)}</div>
-          <div>
-            <span class="tracker-row-timer" id="timer-${idx}">—</span>
-            <span class="tracker-row-unit">${elapsedLabel(unit)}</span>
+          <div class="tracker-row-timers">
+            <div>
+              <span class="tracker-row-timer" id="timer-${idx}">—</span>
+              <span class="tracker-row-unit">${elapsedLabel(unit)}</span>
+            </div>
+            ${bestDisplay}
           </div>
         </div>
+        <span id="badge-${idx}"></span>
         <div class="tracker-row-chevron">›</div>
+        <div class="tracker-row-progress" id="progress-${idx}"></div>
       </div>`;
   }).join('');
 
-  // Start compact timers
+  // Start compact timers with progress
   data.trackers.forEach((t, idx) => {
     const lastEvent = t.events.length > 0 ? Math.max(...t.events) : t.created;
     const unit = t.unit || 'hr';
+    const best = getBestStreak(t.events);
+
     function tick() {
       const el = document.getElementById(`timer-${idx}`);
-      if (el) el.textContent = elapsed(Date.now() - lastEvent, unit);
+      const bar = document.getElementById(`progress-${idx}`);
+      const badge = document.getElementById(`badge-${idx}`);
+      const now = Date.now() - lastEvent;
+      if (el) el.textContent = elapsed(now, unit);
+
+      if (bar && best > 0) {
+        const ratio = Math.min(now / best, 1);
+        bar.style.width = (ratio * 100) + '%';
+        bar.style.backgroundColor = getProgressColor(ratio);
+      }
+
+      if (badge) {
+        if (best > 0 && now >= best) {
+          badge.innerHTML = '<span class="tracker-row-record" style="background:rgba(201,169,110,0.15);color:var(--gold);">new best</span>';
+        } else {
+          badge.innerHTML = '';
+        }
+      }
+
+      // Tint the border when close or beating record
+      const row = document.getElementById(`row-${idx}`);
+      if (row && best > 0) {
+        const ratio = now / best;
+        if (ratio >= 1) {
+          row.style.borderColor = 'var(--accent)';
+        } else if (ratio >= 0.85) {
+          row.style.borderColor = 'var(--accent-dim)';
+        } else {
+          row.style.borderColor = '';
+        }
+      }
     }
     tick();
     liveTimers.push(setInterval(tick, unit === 'min' ? 6000 : unit === 'day' ? 60000 : 1000));
